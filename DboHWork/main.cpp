@@ -17,9 +17,9 @@ using namespace Wt::Dbo;
 class Publisher {
 public:
     string name;
-    //у него есть коллекция из книг
+    //Гі Г­ГҐГЈГ® ГҐГ±ГІГј ГЄГ®Г«Г«ГҐГЄГ¶ГЁГї ГЁГ§ ГЄГ­ГЁГЈ
     collection<ptr<Book>>books;
-    //Объявление ORM-класса/создание таблитцы
+    //ГЋГЎГєГїГўГ«ГҐГ­ГЁГҐ ORM-ГЄГ«Г Г±Г±Г /Г±Г®Г§Г¤Г Г­ГЁГҐ ГІГ ГЎГ«ГЁГІГ¶Г»
     template<typename Action>
     void persist(Action& a)
     {
@@ -31,7 +31,7 @@ public:
 class Book {
 public:
     string title;
-    //ссылка на паблишер
+    //Г±Г±Г»Г«ГЄГ  Г­Г  ГЇГ ГЎГ«ГЁГёГҐГ°
     ptr<Publisher> publisher;
     collection<ptr<Stock >> stocks;
 
@@ -98,11 +98,11 @@ int main() {
     try {
 
         string connectionString =
-            //не забывай пробелы
+            //Г­ГҐ Г§Г ГЎГ»ГўГ Г© ГЇГ°Г®ГЎГҐГ«Г»
             "host=localhost "
             "port=5432 "
             "user=postgres "
-            "password=Pizda1992 "
+            "password=567890 "
             "client_encoding=UTF8 ";
 
 
@@ -115,9 +115,9 @@ int main() {
 
         session.setConnection(move(connection));
 
-        //каждый класс нужно обязательно зарегистрировать
+        //ГЄГ Г¦Г¤Г»Г© ГЄГ«Г Г±Г± Г­ГіГ¦Г­Г® Г®ГЎГїГ§Г ГІГҐГ«ГјГ­Г® Г§Г Г°ГҐГЈГЁГ±ГІГ°ГЁГ°Г®ГўГ ГІГј
         session.mapClass<Book>("book");
-        session.mapClass<Publisher>("Publisher");//название в БД
+        session.mapClass<Publisher>("Publisher");//Г­Г Г§ГўГ Г­ГЁГҐ Гў ГЃГ„
         session.mapClass<Shop>("Shop");
         session.mapClass<Stock>("Stock");
         session.mapClass<Sale>("Sale");
@@ -125,7 +125,7 @@ int main() {
 
 
 
-        //добавляем метод который будет созд таблицу
+        //Г¤Г®ГЎГ ГўГ«ГїГҐГ¬ Г¬ГҐГІГ®Г¤ ГЄГ®ГІГ®Г°Г»Г© ГЎГіГ¤ГҐГІ Г±Г®Г§Г¤ ГІГ ГЎГ«ГЁГ¶Гі
         session.createTables();
 
         Transaction transaction{ session };
