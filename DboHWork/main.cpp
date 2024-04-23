@@ -1,10 +1,8 @@
 #include <iostream>
-#include <wt/dbo/dbo.h>
+#include <Wt/Dbo/Dbo.h>
 #include <Wt/Dbo/backend/Postgres.h>
-#include <Windows.h>
 
 #pragma execution_character_set ("utf-8")
-
 
 class Publisher;
 class Book;
@@ -17,9 +15,9 @@ using namespace Wt::Dbo;
 class Publisher {
 public:
     string name;
-    //ó íåãî åñòü êîëëåêöèÿ èç êíèã
+    //у него есть коллекция из книг
     collection<ptr<Book>>books;
-    //Îáúÿâëåíèå ORM-êëàññà/ñîçäàíèå òàáëèòöû
+    //Объявление ORM-класса/создание таблитцы
     template<typename Action>
     void persist(Action& a)
     {
@@ -31,7 +29,7 @@ public:
 class Book {
 public:
     string title;
-    //ññûëêà íà ïàáëèøåð
+    //ссылка на паблишер
     ptr<Publisher> publisher;
     collection<ptr<Stock >> stocks;
 
@@ -92,53 +90,57 @@ public:
     }
 };
 int main() {
-
     setlocale(LC_ALL, "Russian");
 
     try {
-
         string connectionString =
-            //íå çàáûâàé ïðîáåëû
             "host=localhost "
             "port=5432 "
             "user=postgres "
-            "password=567890 "
+            "password=Student2000 "
             "client_encoding=UTF8 ";
 
-
-        unique_ptr<backend::Postgres>connection{ new backend::Postgres(connectionString) };
-        //auto connection = std::make_unique<Wt::Dbo::backend::Postgres>(connectionString);
-        //auto postgres = std::make_unique<backend::Postgres>(connectionString);
-
-
+        unique_ptr<backend::Postgres> connection{ new backend::Postgres(connectionString) };
         Session session;
-
         session.setConnection(move(connection));
 
-        //êàæäûé êëàññ íóæíî îáÿçàòåëüíî çàðåãèñòðèðîâàòü
         session.mapClass<Book>("book");
-        session.mapClass<Publisher>("Publisher");//íàçâàíèå â ÁÄ
+        session.mapClass<Publisher>("Publisher");
         session.mapClass<Shop>("Shop");
         session.mapClass<Stock>("Stock");
         session.mapClass<Sale>("Sale");
-        session.mapClass<Shop>("Shop");
 
-
-
-        //äîáàâëÿåì ìåòîä êîòîðûé áóäåò ñîçä òàáëèöó
         session.createTables();
 
         Transaction transaction{ session };
 
-        std::unique_ptr<Publisher> publisher{ new Publisher() };
-        publisher->name = "Joe";
-        session.add(std::move(publisher));
+        auto publisher = make_unique<Publisher>();
+        publisher->name = "Tolik";
+        session.add(move(publisher));
+
+        auto shop1 = make_unique<Shop>();
+        shop1->name = "Магазин 1";
+        session.add(move(shop1));
+
+        auto shop2 = make_unique<Shop>();
+        shop2->name = "Магазин 2";
+        session.add(move(shop2));
+
+        auto book1 = make_unique<Book>();
+        book1->title = "Книга 1";
+        book1->publisher = session.find<Publisher>().where("name = ?").bind("Tolik");
+        session.add(move(book1));
+
+        auto book2 = make_unique<Book>();
+        book2->title = "Книга 2";
+        book2->publisher = session.find<Publisher>().where("name = ?").bind("Tolik");
+        session.add(move(book2));
+
+        transaction.commit();
     }
     catch (const std::exception& e) {
-        std::cout << e.what() << std::endl;
+        cout << e.what() << endl;
     }
 
-
     return 0;
-
 }
