@@ -1,6 +1,7 @@
 #include <iostream>
 #include <Wt/Dbo/Dbo.h>
 #include <Wt/Dbo/backend/Postgres.h>
+#include <Windows.h>
 
 #pragma execution_character_set ("utf-8")
 
@@ -90,7 +91,8 @@ public:
     }
 };
 int main() {
-    setlocale(LC_ALL, "Russian");
+//setlocale(LC_ALL, "Russian");
+    SetConsoleOutputCP(CP_UTF8);
 
     try {
         string connectionString =
@@ -101,7 +103,9 @@ int main() {
             "client_encoding=UTF8 ";
 
         unique_ptr<backend::Postgres> connection{ new backend::Postgres(connectionString) };
+
         Session session;
+
         session.setConnection(move(connection));
 
         session.mapClass<Book>("book");
@@ -110,7 +114,12 @@ int main() {
         session.mapClass<Stock>("Stock");
         session.mapClass<Sale>("Sale");
 
-        session.createTables();
+        try
+        {
+            session.createTables();
+        }
+        catch(...){}
+
 
         Transaction transaction{ session };
 
@@ -136,7 +145,54 @@ int main() {
         book2->publisher = session.find<Publisher>().where("name = ?").bind("Tolik");
         session.add(move(book2));
 
-        transaction.commit();
+
+            transaction.commit();
+   
+            std::set<std::string> shop_names_for_deal_publisher{};
+            Wt::Dbo::ptr<Publisher> deal_publisher = session.find<Publisher>().where("name = ?").bind("Tolik");
+
+            for (auto book : deal_publisher->books) {
+                std::cout << "Book: " << book->title << "\n";
+                for (auto stock : book->stocks) {
+                    shop_names_for_deal_publisher.insert(stock->shop->name);
+                }
+            }
+
+            std::cout << "Books of the publisher '" << deal_publisher->name << "' are sold in shops: " << std::endl;
+
+            for (auto shop_name : shop_names_for_deal_publisher) {
+                std::cout << " - " << shop_name << std::endl;
+            }
+
+
+       /* std::set<std::string> shop_names_for_deal_publisher{};
+
+        //Wt::Dbo::ptr<Publisher> deal_publisher = session.find<Publisher>().where("name = ?").bind("Tolik");
+
+        Wt::Dbo::collection<Wt::Dbo::ptr<Publisher>> deal_publisher = session.find<Publisher>().where("name = ?").bind("Tolik");
+
+        if (deal_publisher.size() != 0) {
+            auto itr = deal_publisher.begin();
+            auto& deal_publisher = *itr;
+
+            std::cout << deal_publisher->name;
+        }
+
+
+        /*for (auto book : deal_publisher->books) {
+            std::cout << "Book: " << book->title << "\n";
+            for (auto stock : book->stocks) {
+                shop_names_for_deal_publisher.insert(stock->shop->name);
+            }
+        }
+
+        std::cout << "Books of the publisher '" << deal_publisher->name << "' are sold in shops: " << std::endl;
+
+        for (auto shop_name : shop_names_for_deal_publisher) {
+            std::cout << " - " << shop_name << std::endl;
+        }*/
+
+      
     }
     catch (const std::exception& e) {
         cout << e.what() << endl;
