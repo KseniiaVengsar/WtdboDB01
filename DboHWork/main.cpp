@@ -3,25 +3,24 @@
 #include <Wt/Dbo/backend/Postgres.h>
 #include <Windows.h>
 
-#pragma execution_character_set ("utf-8")
+#pragma execution_character_set("utf-8")
 
 class Publisher;
 class Book;
 class Stock;
 class Sale;
 class Shop;
+
 using namespace std;
 using namespace Wt::Dbo;
 
 class Publisher {
 public:
     string name;
-    //у него есть коллекция из книг
-    collection<ptr<Book>>books;
-    //Объявление ORM-класса/создание таблитцы
-    template<typename Action>
-    void persist(Action& a)
-    {
+    collection<ptr<Book>> books;
+
+    template <typename Action>
+    void persist(Action& a) {
         field(a, name, "name");
         hasMany(a, books, ManyToOne, "publisher");
     }
@@ -30,13 +29,11 @@ public:
 class Book {
 public:
     string title;
-    //ссылка на паблишер
     ptr<Publisher> publisher;
-    collection<ptr<Stock >> stocks;
+    collection<ptr<Stock>> stocks;
 
-    template<class Action>
-    void persist(Action& a)
-    {
+    template <class Action>
+    void persist(Action& a) {
         field(a, title, "title");
         belongsTo(a, publisher, "publisher");
         hasMany(a, stocks, ManyToOne, "book");
@@ -50,9 +47,8 @@ public:
     ptr<Shop> shop;
     collection<ptr<Sale>> sales;
 
-    template<typename Action>
-    void persist(Action& a)
-    {
+    template <typename Action>
+    void persist(Action& a) {
         field(a, count, "count");
         belongsTo(a, book, "book");
         belongsTo(a, shop, "shop");
@@ -65,12 +61,10 @@ public:
     int count;
     int price;
     string date_sale;
-
     ptr<Stock> stock;
 
-    template<typename Action>
-    void persist(Action& a)
-    {
+    template <typename Action>
+    void persist(Action& a) {
         field(a, count, "count");
         field(a, price, "price");
         field(a, date_sale, "date_sale");
@@ -81,20 +75,21 @@ public:
 class Shop {
 public:
     string name;
-    collection<ptr<Stock >> stocks;
+    collection<ptr<Stock>> stocks;
 
-    template<typename Action>
-    void persist(Action& a)
-    {
+    template <typename Action>
+    void persist(Action& a) {
         field(a, name, "name");
         hasMany(a, stocks, ManyToOne, "shop");
     }
 };
-int main() {
-//setlocale(LC_ALL, "Russian");
-    SetConsoleOutputCP(CP_UTF8);
 
-    try {
+class DBManager {
+private:
+    Session session;
+
+public:
+    DBManager() {
         string connectionString =
             "host=localhost "
             "port=5432 "
@@ -103,9 +98,6 @@ int main() {
             "client_encoding=UTF8 ";
 
         unique_ptr<backend::Postgres> connection{ new backend::Postgres(connectionString) };
-
-        Session session;
-
         session.setConnection(move(connection));
 
         session.mapClass<Book>("book");
@@ -114,13 +106,14 @@ int main() {
         session.mapClass<Stock>("Stock");
         session.mapClass<Sale>("Sale");
 
-        try
-        {
+        try {
             session.createTables();
         }
-        catch(...){}
+        catch (...) {
+        }
+    }
 
-
+    void addRelationships() {
         Transaction transaction{ session };
 
         auto publisher = make_unique<Publisher>();
@@ -145,54 +138,38 @@ int main() {
         book2->publisher = session.find<Publisher>().where("name = ?").bind("Tolik");
         session.add(move(book2));
 
+        transaction.commit();
+    }
 
-            transaction.commit();
-   
-            std::set<std::string> shop_names_for_deal_publisher{};
-            Wt::Dbo::ptr<Publisher> deal_publisher = session.find<Publisher>().where("name = ?").bind("Tolik");
+    Session& getSession() {
+        return session;
+    }
+};
 
-            for (auto book : deal_publisher->books) {
-                std::cout << "Book: " << book->title << "\n";
-                for (auto stock : book->stocks) {
-                    shop_names_for_deal_publisher.insert(stock->shop->name);
-                }
-            }
+int main() {
+    SetConsoleOutputCP(CP_UTF8);
 
-            std::cout << "Books of the publisher '" << deal_publisher->name << "' are sold in shops: " << std::endl;
+    bool createTablesOnly = true; 
 
-            for (auto shop_name : shop_names_for_deal_publisher) {
-                std::cout << " - " << shop_name << std::endl;
-            }
+    try {
+        DBManager dbManager;
 
-
-       /* std::set<std::string> shop_names_for_deal_publisher{};
-
-        //Wt::Dbo::ptr<Publisher> deal_publisher = session.find<Publisher>().where("name = ?").bind("Tolik");
-
-        Wt::Dbo::collection<Wt::Dbo::ptr<Publisher>> deal_publisher = session.find<Publisher>().where("name = ?").bind("Tolik");
-
-        if (deal_publisher.size() != 0) {
-            auto itr = deal_publisher.begin();
-            auto& deal_publisher = *itr;
-
-            std::cout << deal_publisher->name;
+        if (!createTablesOnly) {
+            dbManager.addRelationships();
         }
 
+        Session& session = dbManager.getSession();
 
-        /*for (auto book : deal_publisher->books) {
-            std::cout << "Book: " << book->title << "\n";
-            for (auto stock : book->stocks) {
-                shop_names_for_deal_publisher.insert(stock->shop->name);
-            }
-        }
+       
+        unique_ptr<Stock> stock1 = make_unique<Stock>();
+       // stock1->book = book1_added;
+       // stock1->shop = shop1_added;
+       // session.add(move(stock1));
 
-        std::cout << "Books of the publisher '" << deal_publisher->name << "' are sold in shops: " << std::endl;
-
-        for (auto shop_name : shop_names_for_deal_publisher) {
-            std::cout << " - " << shop_name << std::endl;
-        }*/
-
-      
+        //unique_ptr<Stock> stock2 = make_unique<Stock>();
+       // stock2->book = book2_added;
+       // stock2->shop = shop2_added;
+       // session.add(move(stock2));
     }
     catch (const std::exception& e) {
         cout << e.what() << endl;
